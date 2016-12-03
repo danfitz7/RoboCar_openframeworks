@@ -9,19 +9,41 @@ void ofApp::setup(){
     
     ofLog(OF_LOG_NOTICE, "Setting up communication Arduino");
     
+    //ofLogNotice("ofApp::setup") << "Connected Devices: ";
+    //for (auto& device : ofx::IO::SerialDeviceUtils::listDevices()){
+    //    ofLogNotice("ofApp::setup") << "\t" << device;
+    //}
+    
+    /*
+    ofSerial mySerial;
+    mySerial.listDevices();
+    vector <ofSerialDeviceInfo> deviceList = mySerial.getDeviceList();
+    mySerial.setup("cu.DANROVER-RNI-SPP", 9600);     //serial port must match what was declared in arduino Code ... 9600
+    //mySerial.flush();
+    for (int i=0;i<50;i++){
+        mySerial.writeByte('L');
+    }
+    mySerial.writeByte('\n');
+    ofSleepMillis(1000);
+    for (int i=0;i<50;i++){
+        mySerial.writeByte('O');
+    }
+    ofSleepMillis(5000);
+    mySerial.close();
+    */
+    
     // Get a lit of connected serial devices
     // https://github.com/bakercp/ofxSerial/blob/8086059d4de58620b7bc45d67a7388b32a7c4627/example_packet_serial/src/ofApp.cpp
     std::vector<ofx::IO::SerialDeviceInfo> devicesInfo = ofx::IO::SerialDeviceUtils::listDevices();
     ofLogNotice("ofApp::setup") << "Connected Devices: ";
-    for (std::size_t i = 0; i < devicesInfo.size(); ++i)
-    {
+    
+    for (std::size_t i = 0; i < devicesInfo.size(); ++i){
         ofLogNotice("ofApp::setup") << "\t" << devicesInfo[i];
     }
     
-    if (!devicesInfo.empty())
-    {
+    if (!devicesInfo.empty()){
         // Connect to the first matching device.
-        bool success = packetSerialDevice.setup(devicesInfo[0], BAUDRATE);
+        bool success = packetSerialDevice.setup(devicesInfo[0], 9600);
         
         if(success){
             packetSerialDevice.registerAllEvents(this);
@@ -32,6 +54,7 @@ void ofApp::setup(){
     }else{
         ofLogNotice("ofApp::setup") << "No devices connected.";
     }
+    
 }
 
 // Send data to this arduino
@@ -40,13 +63,12 @@ bool ofApp::sendData(uint8_t* buffer, int length){
         if (length>0 && buffer != NULL){
             ofx::IO::ByteBuffer outBuffer(buffer, (size_t)length);
             try{
-                if (packetSerialDevice.isClearToSend()){
+                //if (packetSerialDevice.isClearToSend()){
                     packetSerialDevice.send(outBuffer);
-                    return true;
-                }else{
-                    ofLog(OF_LOG_WARNING, "\tWarning: Packet buffer not clear to send.");
-                    return false;
-                }
+                //}else{
+                //    ofLog(OF_LOG_WARNING, "\tWarning: Packet buffer not clear to send.");
+                //    return false;
+                //}
             }catch(const std::exception& exc){
                 ofLogError("\tError sending packet buffer: ") << exc.what();
                 return false;
@@ -59,6 +81,7 @@ bool ofApp::sendData(uint8_t* buffer, int length){
         ofLogWarning("\tWarning: Serial port closed!");
         return false;
     }
+    return true;
 }
 
 // Decoded serial packets will show up here.
@@ -99,12 +122,12 @@ void ofApp::update(){
             drive_speed = -drive_speed;
         }
         
-        //ofLog(OF_LOG_NOTICE, "D: " + ofToString(drive_speed) + "\tS" + ofToString(steer_angle));
-        
         // Send data
         memcpy(&(cmdBuffer[0]), &steer_angle, sizeof(steer_angle));
         memcpy(&(cmdBuffer[sizeof(steer_angle)]), &drive_speed, sizeof(drive_speed));
-        sendData(cmdBuffer, CMD_MESSAGE_SIZE);
+        if (sendData(cmdBuffer, CMD_MESSAGE_SIZE)){
+            ofLog(OF_LOG_NOTICE, "D: " + ofToString(drive_speed) + "\tS" + ofToString(steer_angle));
+        }
     }
 }
 
