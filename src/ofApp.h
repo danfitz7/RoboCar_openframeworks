@@ -16,6 +16,7 @@ class ofApp : public ofBaseApp{
         float stop_radius;
         void recalcScreenVariables(int w, int h);
     
+        const string CAR_PORT_NAME_BASE_STRING = "DANROVER";
         ofx::IO::COBSPacketSerialDevice packetSerialDevice;
         uint8_t cmdBuffer[CMD_MESSAGE_SIZE];
     

@@ -36,20 +36,26 @@ void ofApp::setup(){
     // https://github.com/bakercp/ofxSerial/blob/8086059d4de58620b7bc45d67a7388b32a7c4627/example_packet_serial/src/ofApp.cpp
     std::vector<ofx::IO::SerialDeviceInfo> devicesInfo = ofx::IO::SerialDeviceUtils::listDevices();
     ofLogNotice("ofApp::setup") << "Connected Devices: ";
-    
+    int port_index = -1;
     for (std::size_t i = 0; i < devicesInfo.size(); ++i){
-        ofLogNotice("ofApp::setup") << "\t" << devicesInfo[i];
+        string deviceName = devicesInfo[i].getPort();
+        if (deviceName.find(CAR_PORT_NAME_BASE_STRING) != string::npos){
+            ofLogNotice("FOUND CAR: ") << "\t" << devicesInfo[i];
+            port_index = i;
+        }else{
+            ofLogNotice("device") << "\t" << devicesInfo[i];
+        }
     }
     
-    if (!devicesInfo.empty()){
+    if (!devicesInfo.empty() && port_index>=0){
         // Connect to the first matching device.
-        bool success = packetSerialDevice.setup(devicesInfo[0], 9600);
+        bool success = packetSerialDevice.setup(devicesInfo[port_index], 9600);
         
         if(success){
             packetSerialDevice.registerAllEvents(this);
-            ofLogNotice("ofApp::setup") << "Successfully setup " << devicesInfo[0];
+            ofLogNotice("ofApp::setup") << "Successfully setup " << devicesInfo[port_index];
         }else{
-            ofLogNotice("ofApp::setup") << "Unable to setup " << devicesInfo[0];
+            ofLogNotice("ofApp::setup") << "Unable to setup " << devicesInfo[port_index];
         }
     }else{
         ofLogNotice("ofApp::setup") << "No devices connected.";
@@ -107,7 +113,7 @@ void ofApp::update(){
         DriveSpeed drive_speed = 0;
         if (driveVectorLength > stop_radius){
             if (driveVectorLength < screen_radius){
-                drive_speed = MAX_DRIVE_SPEED * (driveVectorLength/screen_radius);
+                drive_speed = MAX_DRIVE_SPEED * ((driveVectorLength-stop_radius)/(screen_radius-stop_radius));
             }else{
                 drive_speed = MAX_DRIVE_SPEED;
             }
